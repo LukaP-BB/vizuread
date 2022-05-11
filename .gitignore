@@ -2,3 +2,5 @@
 *.bai
 *.png
 *test*
+.vscode
+*.pyc

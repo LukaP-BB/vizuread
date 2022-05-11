@@ -1,8 +1,8 @@
 import re
 from statistics import mean
 import subprocess as sp
-from matplotlib import cm
 import matplotlib.pyplot as plt
+from matplotlib import cm
 
 
 class ReadException(Exception):
@@ -19,6 +19,7 @@ class BadCigar(ReadException) :
 
 MAPQ_COLORS_PROPERLY_PAIRED = cm.get_cmap("Blues", 256)
 MAPQ_COLORS = cm.get_cmap("Oranges", 256)
+READ_SPACING = 20
 
 def get_mean_qual(seq: str):
     """returns the mean quality of a phred Q string"""
@@ -49,20 +50,19 @@ def parse_cigar(cigar:str) :
         "H" : False,
     }
     segments = []
-    start_shift = 0
-    total_length = 0
+    reff_span = 0
+    plot_length = 0
     for i, match in enumerate(matches) :
         length, operation = int(match[0]), match[1]
-        
-        # si il y a un soft ou hard clip au début, il faut décaler vers la droite
-        if i == 0 and operation in {"H", "S"} :
-            start_shift += length
 
         if adds_to_ref_span[operation] :
-            total_length += length
+            reff_span += length
+
+        if operation != "I" :
+            plot_length += length
 
         segments.append((operation, length))
-    return segments
+    return segments, reff_span, plot_length
 
 class Read():
     """
@@ -102,7 +102,7 @@ class Read():
         self.is_forward = is_forward(self.flag)
         self.is_properly_paired = (self.receiver_chr == "=")
 
-        self.segments = parse_cigar(self.cigar)
+        self.segments, self.ref_span, self.plot_len = parse_cigar(self.cigar)
 
         if self.is_forward :
             self.start = self.pos
@@ -227,10 +227,20 @@ def get_reads_from(bam_file, chrom, start, end, samtools_command="samtools", fla
         yield Read(line.decode()) 
 
 
-def plot_region(bam_file:str=None, region:str=None, ax:plt.Axes=None, reads=[], samtools_command="samtools", samtools_options="", **kwargs) :
+def plot_region(
+    bam_file:str=None, region:str=None, ax:plt.Axes=None, 
+    reads=[], samtools_command="samtools", samtools_options="", 
+    piling="spaced", **kwargs) :
     """
     Plots reads from a specific region on a matplotlib ax. Returns the list of Read objects.
     
+    By default, the reads will be piled up with an algorithm trying to optimize the space they use on the plot.
+    This algorithm can be changed with the `piling` kwarg and accepts :
+    - "compact" : the reads will take the minimum amount of space possible
+    - "spaced"  : same as compact, but with some spacing on the left and the right of each read
+    - "seq"     : the reads are placed on the bottom of the graph again only if there is a break between the reads
+    - None      : each read corresponds to a line on the graph
+
     A list of reads can be directly passed. In that case, every other arguments except `ax` will be ignored.
     This is useful if you wanna retrieve a list of reads and perform custom operations on them before plotting them. 
 
@@ -268,16 +278,54 @@ def plot_region(bam_file:str=None, region:str=None, ax:plt.Axes=None, reads=[], 
         elif isinstance(region, str) :
             region = parse_position(region)
         else :
-            raise Exception("region must be a deined string or tuple")
+            raise Exception("region must be a defined string or tuple")
 
+        # consuming the generator into a list so we can return it
         reads = list(get_reads_from(bam_file, *region, samtools_command=samtools_command, flags=samtools_options))
     
-    for i, r in enumerate(reads) :
-        r.plot(ax, i, **kwargs)
-        
+    if piling is None :
+        for i, r in enumerate(reads) :
+            r.plot(ax, i, **kwargs)
+
+    elif piling in {"compact", "spaced"} :
+        if piling == "spaced" :
+            padding = READ_SPACING
+        else :
+            padding = 0
+        rightmosts = [] # this will keep track of rightmost positions
+        i = 0
+        for r in reads :
+            for j, right_pos in enumerate(rightmosts) :
+                if right_pos + padding < r.start :
+                    rightmosts[j] = r.start+r.plot_len
+                    r.plot(ax, j)
+                    i = j
+                    break
+                else :
+                    i = j+1
+            else :
+                # if the loop didn't break
+                rightmosts.append(r.start+r.plot_len)
+                r.plot(ax, i)
+                        
+    elif piling == "seq" :
+        rightmost = 0
+        i = 0
+        for r in reads :
+            if r.start > rightmost :
+                i = 0
+                r.plot(ax, i)
+            else :
+                r.plot(ax, i)
+
+            if r.start + r.plot_len > rightmost :
+                rightmost = r.start + r.plot_len
+            i += 1
+
+    else :
+        raise Exception("piling argument has to be one of [None, 'compact', 'seq', 'spaced']")        
+
     return reads
-
-
 
 def plot_transloc(
     f = "T30989_realigned.fixed.recal.bam",
@@ -298,37 +346,3 @@ def plot_transloc(
     ax[1].set_title(f"Reads {c2}")    
     plt.suptitle(f"Reads attestant d'une translocation {c1}-{c2}")
     plt.show()
-
-if __name__ == "__main__" :
-    plot_transloc()
-
-    # f = "T32093_realigned.fixed.recal.bam"
-    # position = parse_position("chr11:36,270,167-36 270 242")
-    # c1 = "chr11"
-
-    # f = "T30989_realigned.fixed.recal.bam"
-    # c1 = "chr11"
-    # c2 = "chr14"
-    # s = "69,638,162"
-    # e = "69,639,433"
-
-    # reads = get_reads_from(f, c1, s, e, flags="-F 2")
-    # # s = "0"
-    # # e = "69,639,433"
-    # # for r in get_reads_from(f, c1, s, e) :
-    # #     if "3D" in r.cigar :
-    # #         print(r)
-
-    # # reads = get_reads_from(f, *position, samtools_command="samtools")
-    # fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(12,5))
-
-    # for i, r in enumerate(reads) :
-    #     # print(r)
-    #     r.plot(ax, i)
-    # plt.show()
-
-    # print(is_forward(10))
-    
-
-    # cigar = "35H8M1D32M"
-    # parse_cigar(cigar)
