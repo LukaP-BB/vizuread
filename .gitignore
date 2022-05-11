@@ -1,6 +1,5 @@
 *.bam
 *.bai
-*.png
 *test*
 .vscode
 *.pyc
