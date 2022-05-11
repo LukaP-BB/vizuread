@@ -1,7 +1,6 @@
 import re
 from statistics import mean
 import subprocess as sp
-from sys import flags
 from matplotlib import cm
 import matplotlib.pyplot as plt
 
