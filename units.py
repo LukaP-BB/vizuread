@@ -3,7 +3,7 @@ from vizuread import plot_region, get_reads_from, parse_position, READ_SPACING
 
 fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(27,10))
 f = "tests/child.bam"
-plot_region(f, "chr22:23480074-23483000", ax=ax, piling=None)
+plot_region(f, "chr22:23480074-23483000", ax=ax, piling="compact")
 plt.savefig("test.png")
 plt.show()
 

@@ -1,8 +1,19 @@
-# Reads plots
+# vizuread
 
 A visualisation tool for sequence alignments, creating IGV-like plots that can be programatically generated
 
-# Usage
+Also provides a Read class and functions to retrieve reads from a bam file, 
+even if that's probbaly less useful knowing biopython exists.
+
+For advanced usage, this module requires knowledge about samtools and the sam format.
+
+![](doc/example1.png)
+
+## Dependencies
+- matplotlib
+- samtools
+
+## Usage
 
 ```py
 import matplotlib.pyplot as plt
