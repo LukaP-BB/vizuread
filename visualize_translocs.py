@@ -1,6 +1,7 @@
 import re
 from statistics import mean
 import subprocess as sp
+from sys import flags
 from matplotlib import cm
 import matplotlib.pyplot as plt
 
@@ -227,9 +228,12 @@ def get_reads_from(bam_file, chrom, start, end, samtools_command="samtools", fla
         yield Read(line.decode()) 
 
 
-def plot_region(bam_file:str, region:str, ax:plt.Axes, samtools_command="samtools", samtools_options="", **kwargs) :
+def plot_region(bam_file:str=None, region:str=None, ax:plt.Axes=None, reads=[], samtools_command="samtools", samtools_options="", **kwargs) :
     """
     Plots reads from a specific region on a matplotlib ax. Returns the list of Read objects.
+    
+    A list of reads can be directly passed. In that case, every other arguments except `ax` will be ignored.
+    This is useful if you wanna retrieve a list of reads and perform custom operations on them before plotting them. 
 
     If samtools isn't in your path, you can overwrite the default samtools_command kwarg by an appropriate one.
 
@@ -253,17 +257,26 @@ def plot_region(bam_file:str, region:str, ax:plt.Axes, samtools_command="samtool
     ax[1].set_title("some title")
     plt.show()
     """
-    if isinstance(region, tuple) or isinstance(region, list) :
-        if len(region) != 3 :
-            raise Exception(f"The region argument must be a tuple or list with 3 elements : (chr, start, end)")
-    elif isinstance(region, str) :
-        region = parse_position(region)
-    
-    reads = get_reads_from(bam_file, *region, samtools_command=samtools_command, flags=samtools_options)
+
+    if ax is None : raise Exception("ax must be defined")
+
+    if reads == [] :
+        if bam_file is None : raise Exception(f"bam_file must be defined")
+
+        if isinstance(region, tuple) or isinstance(region, list) :
+            if len(region) != 3 :
+                raise Exception(f"The region argument must be a tuple or list with 3 elements : (chr, start, end)")
+        elif isinstance(region, str) :
+            region = parse_position(region)
+        else :
+            raise Exception("region must be a deined string or tuple")
+
+        reads = list(get_reads_from(bam_file, *region, samtools_command=samtools_command, flags=samtools_options))
     
     for i, r in enumerate(reads) :
         r.plot(ax, i, **kwargs)
-        yield r
+        
+    return reads
 
 
 
@@ -279,34 +292,12 @@ def plot_transloc(
     reads = plot_region(f, (c1, s, e), ax[0], samtools_options="-F 2")
     p = [r.pos_receiver for r in reads if r.receiver_chr == c2]
     mi, ma = min(p), max(p)
-    list(plot_region(f, (c2, mi, ma), ax[1], samtools_options="-F 2"))
 
-
-    # reads = list(get_reads_from(f, c1, s, e))
-    # # reads = [r for r in reads if r.receiver_chr == c2]
-
-    # # print([r.cigar for r in reads])
-
-    # p = [r.pos_receiver for r in reads if r.receiver_chr == c2]
-    # mi, ma = min(p), max(p)
-
-    # fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(12,5))
-
-    # for i, r in enumerate(reads) :
-    #     r.plot(ax[0], i)
-    # ax[0].set_title(f"Reads {c1}")
-
-    # reads2 = list(get_reads_from(f, c2, mi, ma))
-    # reads2 = [r for r in reads2 if not r.is_properly_paired and r.receiver_chr == c1]
-
-    # # print([r.cigar for r in reads2])
-
-    # for i, r in enumerate(reads2) :
-    #     r.plot(ax[1], i)
-    # ax[1].set_title(f"Reads {c2}")
-    
-    # plt.suptitle(f"Reads attestant d'une translocation {c1}-{c2}")
-    # # plt.savefig(f"{f.split('_')[0]}_{c1}-{c2}.png")
+    reads2 = get_reads_from(f, c2, mi, ma, flags="-F 2")
+    plot_region(ax=ax[1], reads=reads2)
+    ax[0].set_title(f"Reads {c1}")
+    ax[1].set_title(f"Reads {c2}")    
+    plt.suptitle(f"Reads attestant d'une translocation {c1}-{c2}")
     plt.show()
 
 if __name__ == "__main__" :
