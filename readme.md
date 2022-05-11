@@ -31,7 +31,7 @@ bam_file = "/path/to/your_file.bam"
 plot_region(bam_file, region1, ax[0], samtools_options="-F 2") # use the flag -F 2 to exclude all reads that are properly paired.
 
 # extract reads from the second region and specify a path to your samtools bin
-reads2 = get_reads_from(bam_file, *parse_position(region2), samtools_command="/bin/samtools")
+reads2 = get_reads_from(bam_file, region2, samtools_command="/bin/samtools")
 # subselect reads based on a condition, here reads with deletions
 reads2 = [r for r in reads2 if "D" in r.cigar] 
 # and plot them

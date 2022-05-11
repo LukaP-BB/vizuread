@@ -7,6 +7,9 @@ plot_region(f, "chr22:23480074-23483000", ax=ax, piling="compact")
 plt.savefig("test.png")
 plt.show()
 
+reads = get_reads_from(f, "chr22:23480074-23483000")
+print([str(r) for r in reads])
+
 # position = parse_position("chr22:1-100000000")
 # for r in get_reads_from(f, *position) :
 #     if "3D" in r.cigar :

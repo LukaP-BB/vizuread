@@ -282,16 +282,8 @@ def plot_region(
     if reads == [] :
         if bam_file is None : raise Exception(f"bam_file must be defined")
 
-        if isinstance(region, tuple) or isinstance(region, list) :
-            if len(region) != 3 :
-                raise Exception(f"The region argument must be a tuple or list with 3 elements : (chr, start, end)")
-        elif isinstance(region, str) :
-            region = parse_position(region)
-        else :
-            raise Exception("region must be a defined string or tuple")
-
         # consuming the generator into a list so we can return it
-        reads = list(get_reads_from(bam_file, *region, samtools_command=samtools_command, flags=samtools_options))
+        reads = list(get_reads_from(bam_file, region, samtools_command=samtools_command, flags=samtools_options))
     
     if piling is None :
         for i, r in enumerate(reads) :
