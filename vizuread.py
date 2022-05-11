@@ -201,14 +201,14 @@ def parse_position(pos:str) :
         raise ValueError(f"Could not parse the string '{pos}' into valid positions with the regex '{regex}'")
 
 
-def get_reads_from(bam_file, position, samtools_command="samtools", flags=""):
+def get_reads_from(bam_file, position, samtools_command="samtools", samtools_options=""):
     """
     Returns a generator of reads from a given region. 
     If samtools isn't in your path, you can overwrite the default samtools_command kwarg by an appropriate one.
 
     You can use the helper function parse_position() to input a string similar to what you could give to IGV or UCSC genome browser.
 
-    You can use the flags kwarg to specify filtering options to the `samtools view` command, eg 
+    You can use the samtools_options kwarg to specify filtering options to the `samtools view` command, eg 
     ```py
     position = parse_position("chr11:36,270,167-36 270 242")
     reads = get_reads_from(f, *position, samtools_command="samtools")
@@ -228,7 +228,7 @@ def get_reads_from(bam_file, position, samtools_command="samtools", flags=""):
     else :
         raise Exception("position argument expected either a tuple or a string")
 
-    samtools = f"{samtools_command} view {flags} {bam_file} {chrom}:{start}-{end}"
+    samtools = f"{samtools_command} view {samtools_options} {bam_file} {chrom}:{start}-{end}"
     print(samtools)
     sam = sp.Popen(samtools.split() , stdout=sp.PIPE, stderr=sp.PIPE)
     cut_command = "cut -f 2,3,4,5,6,7,8,10,11"
