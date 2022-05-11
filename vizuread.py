@@ -201,7 +201,7 @@ def parse_position(pos:str) :
         raise ValueError(f"Could not parse the string '{pos}' into valid positions with the regex '{regex}'")
 
 
-def get_reads_from(bam_file, chrom, start, end, samtools_command="samtools", flags=""):
+def get_reads_from(bam_file, position, samtools_command="samtools", flags=""):
     """
     Returns a generator of reads from a given region. 
     If samtools isn't in your path, you can overwrite the default samtools_command kwarg by an appropriate one.
@@ -218,6 +218,16 @@ def get_reads_from(bam_file, chrom, start, end, samtools_command="samtools", fla
     last_read = list_of_reads[-1]
     ```
     """
+    if isinstance(position, tuple) or isinstance(position, list) :
+        try :
+            chrom, start, end = position
+        except Exception :
+            raise Exception("The tuple or list passed as the position argument must have 3 elements, no more, no less. Three shall be the number thou shalt count, and the number of the counting shall be three. Four shalt thou not count, neither count thou two, excepting that thou then proceed to three. Five is right out")
+    elif isinstance(position, str) :
+        chrom, start, end = parse_position(position)
+    else :
+        raise Exception("position argument expected either a tuple or a string")
+
     samtools = f"{samtools_command} view {flags} {bam_file} {chrom}:{start}-{end}"
     print(samtools)
     sam = sp.Popen(samtools.split() , stdout=sp.PIPE, stderr=sp.PIPE)
