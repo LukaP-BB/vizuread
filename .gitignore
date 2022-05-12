@@ -1,5 +1,4 @@
-*.bam
-*.bai
-*test*
+*recal.bam
+*recal.bai
 .vscode
 *.pyc

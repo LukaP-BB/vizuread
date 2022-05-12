@@ -283,7 +283,7 @@ def plot_region(
         if bam_file is None : raise Exception(f"bam_file must be defined")
 
         # consuming the generator into a list so we can return it
-        reads = list(get_reads_from(bam_file, region, samtools_command=samtools_command, flags=samtools_options))
+        reads = list(get_reads_from(bam_file, region, samtools_command=samtools_command, samtools_options=samtools_options))
     
     if piling is None :
         for i, r in enumerate(reads) :

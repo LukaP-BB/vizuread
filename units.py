@@ -2,10 +2,10 @@ import matplotlib.pyplot as plt
 from vizuread import plot_region, get_reads_from, parse_position, READ_SPACING
 
 fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(27,10))
-f = "tests/child.bam"
-plot_region(f, "chr22:23480074-23483000", ax=ax, piling="compact")
+f = "tests/ref.bam"
+plot_region(f, "chr14:105,709,976-105,710,983", ax=ax, piling="compact")
 plt.savefig("test.png")
-plt.show()
+# plt.show()
 
 reads = get_reads_from(f, "chr22:23480074-23483000")
 print([str(r) for r in reads])

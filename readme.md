@@ -9,6 +9,8 @@ For advanced usage, this module requires knowledge about samtools and the sam fo
 
 ![](doc/example1.png)
 
+![](doc/example2.png)
+
 ## Dependencies
 - matplotlib
 - samtools
