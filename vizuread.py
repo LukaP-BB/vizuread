@@ -4,6 +4,21 @@ import subprocess as sp
 import matplotlib.pyplot as plt
 from matplotlib import cm
 
+import logging
+import re
+
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+# logging.basicConfig(level=logging.DEBUG, format='[%(levelname)s] [%(asctime)s] [%(module)s] %(message)s', datefmt='%H:%M:%S')
+formatter = logging.Formatter('[%(levelname)s] [%(asctime)s] [%(module)s] %(message)s', datefmt='%H:%M:%S')
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+ch.setFormatter(formatter)
+
+logger.addHandler(ch)
+
 
 class ReadException(Exception):
     """base exception for the read errors"""
@@ -108,9 +123,21 @@ class Read():
             self.start = self.pos
             self.end = self.pos+self.length
         else :
-            self.start = self.pos-self.length
-            self.end = self.pos
+            self.start = self.pos - self._shift()
+            self.end = self.start - self.plot_len
 
+    def _shift(self) :
+        try:
+            if self.segments[0][0] in {"S", "H"}:
+                shift = self.segments[0][1]
+                logger.warning(
+                    f"Read starting with a clip, shifted by -{shift} : {self}")
+            else:
+                shift = 0
+        except IndexError:  # cas où le cigar == "*"
+            shift = 0
+
+        return shift
 
     def plot(self, ax:plt.axes, ypos:int, **kwargs) :
         """
@@ -123,7 +150,7 @@ class Read():
         else :
             color = MAPQ_COLORS(self.mapQ)
 
-        cursor_pos = self.pos
+        cursor_pos = self.start
 
         # defining colors and widths for the different types of segments
         colors = {"H" : "black", "S" : "grey", "D" : "red", "I" : "green"}
@@ -157,6 +184,10 @@ class Read():
                 )
             else :
                 head_length = 4 if i==0 else 0 # tracing the arrow head only for the tip of the read
+                # for reverse reads, the position of clipped reads has to be shifted 
+                # if i == 0 and operation in {"S", "H"} : 
+                #     cursor_pos -= length
+                #     logging.warning(f"Shifting read {self} by -{length}")
                 ax.arrow(
                     x=cursor_pos+length+drift, y=ypos, dx=-length, 
                     dy=0, width=width, head_width=head_width, 
@@ -180,7 +211,10 @@ class Read():
         return False
 
     def __str__(self) -> str:
-        return f"{self.chr}:{self.start}-{self.end} {self.cigar}"
+        return f"{self.chr}:{self.pos} {self.cigar} forward={self.is_forward}"
+    
+    def __repr__(self) -> str:
+        return str(self)
 
 def parse_position(pos:str) :
     """
