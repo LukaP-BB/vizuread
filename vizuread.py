@@ -224,11 +224,19 @@ def get_reads_from(bam_file, position, samtools_command="samtools", samtools_opt
         except Exception :
             raise Exception("The tuple or list passed as the position argument must have 3 elements, no more, no less. Three shall be the number thou shalt count, and the number of the counting shall be three. Four shalt thou not count, neither count thou two, excepting that thou then proceed to three. Five is right out")
     elif isinstance(position, str) :
-        chrom, start, end = parse_position(position)
+        try :
+            chrom, start, end = parse_position(position)
+            region = f"{chrom}:{start}-{end}"
+        except ValueError :
+            if "chr" in position :
+                region = position
+            else :
+                raise
+
     else :
         raise Exception("position argument expected either a tuple or a string")
 
-    samtools = f"{samtools_command} view {samtools_options} {bam_file} {chrom}:{start}-{end}"
+    samtools = f"{samtools_command} view {samtools_options} {bam_file} {region}"
     print(samtools)
     sam = sp.Popen(samtools.split() , stdout=sp.PIPE, stderr=sp.PIPE)
     cut_command = "cut -f 2,3,4,5,6,7,8,10,11"
@@ -347,4 +355,15 @@ def plot_transloc(
     ax[0].set_title(f"Reads {c1}")
     ax[1].set_title(f"Reads {c2}")    
     plt.suptitle(f"Reads attestant d'une translocation {c1}-{c2}")
+    plt.show()
+
+
+if __name__ == "__main__" : 
+    reads = get_reads_from("/home/luka/Projet/routine/hebdo/T32924_realigned.fixed.recal.bam", position="chr14", samtools_options="-F 2")
+
+    reads = [r for r in reads if r.receiver_chr == "chr11"]
+    
+    fig, ax = plt.subplots(1,1)
+    
+    plot_region(reads=reads, ax=ax)
     plt.show()
