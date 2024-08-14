@@ -145,7 +145,9 @@ class Read():
         
         Kwargs are passed to plt.arrow https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.arrow.html 
         """
-        if self.is_properly_paired :
+        if hasattr(self, "color") : 
+            color = self.color
+        elif self.is_properly_paired :
             color = MAPQ_COLORS_PROPERLY_PAIRED(self.mapQ)
         else :
             color = MAPQ_COLORS(self.mapQ)
